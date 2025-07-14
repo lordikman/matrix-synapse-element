@@ -1,0 +1,79 @@
+services:
+  synapse-app:
+    image: matrixdotorg/synapse:latest
+    container_name: synapse-app
+    hostname: synapse-app
+    restart: unless-stopped
+    environment:
+      TZ: "<Your Time Zone>"
+      SYNAPSE_CONFIG_PATH: /data/homeserver.yaml
+    volumes:
+      - /data/synapse_data:/data
+      - /data/media_data:/media_store  
+    depends_on:
+      - synapse-db
+ 
+  synapse-db:
+    image: docker.io/postgres:13-alpine
+    container_name: synapse-db
+    hostname: synapse-db
+    restart: unless-stopped
+    environment:
+      TZ: "<Your Time Zone>"
+      POSTGRES_USER: synapse
+      POSTGRES_PASSWORD: <Your DB Password>
+      POSTGRES_INITDB_ARGS: --encoding=UTF-8 --lc-collate=C --lc-ctype=C
+    volumes:
+      - /data/pgsql_data:/var/lib/postgresql/data
+ 
+  element:
+    image: vectorim/element-web:latest
+    hostname: element
+    container_name: element
+    restart: unless-stopped
+    environment:
+      TZ: "<Your Time Zone>"
+    volumes:
+      - /data/element_data/config.json:/app/config.json
+    depends_on:
+      - synapse-app
+
+  nginx:
+    image: nginx
+    hostname: nginx
+    container_name: nginx
+    restart: unless-stopped
+    depends_on:
+      - synapse-app
+      - element
+    environment:
+      TZ: "<Your Time Zone>"
+    ports:
+      - 80:80
+    volumes:
+      - /data/nginx_data/conf.d/element.conf:/etc/nginx/conf.d/element.conf
+
+  synapse-admin:
+    container_name: synapse-admin
+    hostname: synapse-admin
+    image: awesometechnologies/synapse-admin:latest
+    build:
+      context: /data/admin_data/.
+      args:
+        - REACT_APP_SERVER=<Your Domain>
+        - BASE_PATH=/admin
+    restart: unless-stopped
+    environment:
+      TZ: "<Your Time Zone>"
+    depends_on:
+        - synapse-app
+
+  coturn:
+      restart: unless-stopped
+      container_name: coturn
+      image: instrumentisto/coturn
+      network_mode: host
+      volumes:
+          - /data/coturn/conf:/etc/coturn/
+          - /data/coturn/keys:/data/keys/
+          - /data/coturn/log:/data/log/

@@ -1,0 +1,27 @@
+server_name: "<Your domain>"
+pid_file: /data/homeserver.pid
+listeners:
+  - port: 8008
+    tls: false
+    type: http
+    x_forwarded: true
+    resources:
+      - names: [client, federation]
+        compress: false
+database:
+  name: psycopg2
+  txn_limit: 10000
+  args:
+    user: synapse
+    password: <Your DB Password>
+    database: synapse
+    host: synapse-db
+    port: 5432
+    cp_min: 5
+    cp_max: 10
+report_stats: false
+registration_shared_secret: "randomly_generated_string"
+enable_registration: False
+turn_uris: ["turns:<Your domain>:5349?transport=udp", "turns:<Your domain>:5349?transport=tcp", "turn:<Your domain>:3478?transport=udp", "turn:<Your domain>:3478?transport=tcp"]
+turn_shared_secret: "<Your turn server secret>"
+# vim:ft=yaml
